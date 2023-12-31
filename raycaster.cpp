@@ -1,8 +1,11 @@
+#pragma once
 
 //Using SDL and standard IO
 #include <SDL.h>
 #include <stdio.h>
 #include <iostream>
+
+#include "Dot.h"
 
 //Screen dimension constants
 const int SCREEN_WIDTH = 640;
@@ -13,6 +16,16 @@ SDL_Window* gWindow = NULL;
 
 //The surface contained by the window
 SDL_Surface* gScreenSurface = NULL;
+
+//The window renderer
+SDL_Renderer* gRenderer = NULL;
+
+typedef struct {
+	float posX;
+	float posY;
+} Player;
+
+Player player;
 
 bool init();
 
@@ -36,11 +49,18 @@ int main( int argc, char* args[] )
 		}
 		else
 		{
-			//Fill the surface white
-			SDL_FillRect( gScreenSurface, NULL, SDL_MapRGB( gScreenSurface->format, 0xFF, 0xFF, 0xFF ) );
+			//Fill the surface gray
+			//SDL_FillRect( gScreenSurface, NULL, SDL_MapRGB( gScreenSurface->format, 0x7F, 0x7F, 0x7F ) );
 
-			//Update the surface
-			SDL_UpdateWindowSurface( gWindow );
+			SDL_Rect fillBackgroundRect = { 0, 0, SCREEN_WIDTH-1, SCREEN_HEIGHT-1 };
+			SDL_SetRenderDrawColor( gRenderer, 0x7F, 0x7F, 0x7F, 0xFF );
+			SDL_RenderFillRect( gRenderer, &fillBackgroundRect );
+			
+			Dot dot(10, 10, gRenderer);
+			dot.render();
+
+			//Update screen
+			SDL_RenderPresent( gRenderer );
 
 			//Hack to get window to stay up
 			SDL_Event e; bool quit = false; while( quit == false ){ while( SDL_PollEvent( &e ) ){ if( e.type == SDL_QUIT ) quit = true; } }
@@ -56,7 +76,6 @@ int main( int argc, char* args[] )
 bool init ()
 {
 	bool success = true;
-
 	//Initialize SDL
 	if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
 	{
@@ -74,6 +93,8 @@ bool init ()
 		}
 		else
 		{
+			//Create renderer for window
+			gRenderer = SDL_CreateRenderer( gWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC );
 			//Get window surface
 			gScreenSurface = SDL_GetWindowSurface( gWindow );
 		}
@@ -84,7 +105,6 @@ bool init ()
 bool loadMedia()
 {
 	bool success = true;
-
 	return success;
 }
 
@@ -93,7 +113,6 @@ void close()
 	//Destroy window
 	SDL_DestroyWindow( gWindow );
 	gWindow = NULL;
-
 	//Quit SDL subsystems
 	SDL_Quit();
 }

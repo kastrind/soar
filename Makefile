@@ -1,5 +1,5 @@
 #OBJS specifies which files to compile as part of the project
-OBJS = raycaster.cpp
+OBJS = raycaster.cpp Dot.cpp
 
 #CC specifies which compiler we're using
 CC = g++
