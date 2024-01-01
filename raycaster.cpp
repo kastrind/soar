@@ -8,8 +8,8 @@
 #include "Dot.h"
 
 //Screen dimension constants
-const int SCREEN_WIDTH = 640;
-const int SCREEN_HEIGHT = 480;
+const int SCREEN_WIDTH = 512;
+const int SCREEN_HEIGHT = 512;
 
 //The window we'll be rendering to
 SDL_Window* gWindow = NULL;
@@ -20,12 +20,33 @@ SDL_Surface* gScreenSurface = NULL;
 //The window renderer
 SDL_Renderer* gRenderer = NULL;
 
-typedef struct {
-	float posX;
-	float posY;
-} Player;
+int mapX=8, mapY=8, mapS=64;
+int map[] =
+{
+1, 1, 1, 1, 1, 1, 1, 1,
+1, 0, 0, 0, 0, 0, 0, 1,
+1, 0, 1, 0, 1, 0, 1, 1,
+1, 0, 0, 0, 0, 0, 0, 1,
+1, 0, 0, 1, 1, 1, 0, 1,
+1, 0, 0, 0, 0, 0, 0, 1,
+1, 0, 0, 0, 1, 0, 0, 1,
+1, 1, 1, 1, 1, 1, 1, 1
+};
 
-Player player;
+void drawMap2D(SDL_Renderer* gRenderer)
+{
+	int x, y;
+	for (y=0; y<mapY; y++)
+	{
+		for (x=0; x<mapX; x++)
+		{
+			if (map[x + y*mapY]==0) continue;
+			SDL_Rect fillRect = { x*mapS+1, y*mapS+1, mapS-1, mapS-1 };
+			SDL_SetRenderDrawColor( gRenderer, 0x33, 0x33, 0x33, 0xFF );
+			SDL_RenderFillRect( gRenderer, &fillRect );
+		}
+	}
+}
 
 bool init();
 
@@ -83,8 +104,10 @@ int main( int argc, char* args[] )
 					dot.move();
 
 					//Clear screen
-					SDL_SetRenderDrawColor( gRenderer, 0x1F, 0x7F, 0x7F, 0xFF );
+					SDL_SetRenderDrawColor( gRenderer, 0x7F, 0x7F, 0x7F, 0xFF );
 					SDL_RenderClear( gRenderer );
+					
+					drawMap2D(gRenderer);
 
 					//Render objects
 					dot.render();
