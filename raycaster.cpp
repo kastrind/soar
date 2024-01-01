@@ -49,21 +49,50 @@ int main( int argc, char* args[] )
 		}
 		else
 		{
-			//Fill the surface gray
-			//SDL_FillRect( gScreenSurface, NULL, SDL_MapRGB( gScreenSurface->format, 0x7F, 0x7F, 0x7F ) );
-
+			//Fill the background gray
 			SDL_Rect fillBackgroundRect = { 0, 0, SCREEN_WIDTH-1, SCREEN_HEIGHT-1 };
 			SDL_SetRenderDrawColor( gRenderer, 0x7F, 0x7F, 0x7F, 0xFF );
 			SDL_RenderFillRect( gRenderer, &fillBackgroundRect );
-			
-			Dot dot(10, 10, gRenderer);
-			dot.render();
 
-			//Update screen
-			SDL_RenderPresent( gRenderer );
+			EventController eventController;
+			Dot dot(10, 10, gRenderer, &eventController);
 
-			//Hack to get window to stay up
-			SDL_Event e; bool quit = false; while( quit == false ){ while( SDL_PollEvent( &e ) ){ if( e.type == SDL_QUIT ) quit = true; } }
+			//Main loop flag
+			bool quit = false;
+			//Event handler
+			SDL_Event e;
+			//Handle events on queue
+			while( quit == false )
+			{
+
+				//User requests quit
+				while( SDL_PollEvent( &e ) )
+				{
+					//User requests quit
+					if( e.type == SDL_QUIT )
+					{
+						quit = true;
+					}
+					//User presses or releases a key
+					else if( e.type == SDL_KEYDOWN || e.type == SDL_KEYUP )
+					{
+						eventController.processEvent(&e);
+					}
+
+					//Move the dot
+					dot.move();
+
+					//Clear screen
+					SDL_SetRenderDrawColor( gRenderer, 0x1F, 0x7F, 0x7F, 0xFF );
+					SDL_RenderClear( gRenderer );
+
+					//Render objects
+					dot.render();
+
+					//Update screen
+					SDL_RenderPresent( gRenderer );
+				}
+			}
 		}
 	}
 
