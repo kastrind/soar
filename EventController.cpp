@@ -26,6 +26,14 @@ void EventController::processEvent(SDL_Event* e)
 		{
 			keysPressed[SupportedKeys::RIGHT_ARROW] = true;
 		}
+		else if (e->key.keysym.sym == SDLK_a)
+		{
+			keysPressed[SupportedKeys::A] = true;
+		}
+		else if (e->key.keysym.sym == SDLK_d)
+		{
+			keysPressed[SupportedKeys::D] = true;
+		}
 	}
 	//User releases a key
 	else if( e->type == SDL_KEYUP )
@@ -45,6 +53,14 @@ void EventController::processEvent(SDL_Event* e)
 		else if (e->key.keysym.sym == SDLK_RIGHT)
 		{
 			keysPressed[SupportedKeys::RIGHT_ARROW] = false;
+		}
+		else if (e->key.keysym.sym == SDLK_a)
+		{
+			keysPressed[SupportedKeys::A] = false;
+		}
+		else if (e->key.keysym.sym == SDLK_d)
+		{
+			keysPressed[SupportedKeys::D] = false;
 		}
 	}
 }

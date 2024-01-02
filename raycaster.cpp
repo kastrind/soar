@@ -100,6 +100,7 @@ int main( int argc, char* args[] )
 						eventController.processEvent(&e);
 					}
 
+				}
 					//Move the dot
 					dot.move();
 
@@ -114,7 +115,6 @@ int main( int argc, char* args[] )
 
 					//Update screen
 					SDL_RenderPresent( gRenderer );
-				}
 			}
 		}
 	}

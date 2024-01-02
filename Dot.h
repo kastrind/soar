@@ -12,8 +12,8 @@ class Dot
 	public:
 
 		//The dimensions of the dot
-		static const int DOT_WIDTH = 20;
-		static const int DOT_HEIGHT = 20;
+		static const int DOT_WIDTH = 10;
+		static const int DOT_HEIGHT = 10;
 
 		//Maximum axis velocity of the dot
 		static const int DOT_VEL = 10;
@@ -21,10 +21,10 @@ class Dot
 		int diagonalVelocity = sqrt(pow(DOT_VEL, 2)/2);
 
 		//Initializes the variables
-		Dot () : posX(0), posY(0), velX(0), velY(0), gRenderer(nullptr), eController(nullptr)
+		Dot () : posX(0), posY(0), velX(0), velY(0), pdX(2), pdY(0), angle(0), gRenderer(nullptr), eController(nullptr)
 		{}
 
-		Dot (int posX, int posY, SDL_Renderer* gRenderer, EventController* eController) : posX(posX), posY(posY), gRenderer(gRenderer), eController(eController), velX(0), velY(0)
+		Dot (int posX, int posY, SDL_Renderer* gRenderer, EventController* eController) : posX(posX), posY(posY), gRenderer(gRenderer), eController(eController), velX(0), velY(0), pdX(2), pdY(0), angle(0)
 		{}
 
 		//Shows the dot on the screen
@@ -40,6 +40,8 @@ class Dot
 
 		//The velocity of the dot
 		int velX, velY;
+
+		float pdX, pdY, angle;
 
 		SDL_Renderer* gRenderer;
 

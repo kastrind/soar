@@ -10,6 +10,8 @@ typedef enum
 	DOWN_ARROW,
 	LEFT_ARROW,
 	RIGHT_ARROW,
+	A,
+	D,
 	ALL_KEYS
 } SupportedKeys;
 
