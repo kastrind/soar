@@ -24,12 +24,12 @@ int mapX=8, mapY=8, mapS=64;
 int map[] =
 {
 1, 1, 1, 1, 1, 1, 1, 1,
+1, 0, 0, 0, 0, 1, 0, 1,
+1, 0, 1, 0, 0, 1, 0, 1,
 1, 0, 0, 0, 0, 0, 0, 1,
-1, 0, 1, 0, 1, 0, 1, 1,
+1, 0, 0, 1, 1, 0, 0, 1,
 1, 0, 0, 0, 0, 0, 0, 1,
-1, 0, 0, 1, 1, 1, 0, 1,
 1, 0, 0, 0, 0, 0, 0, 1,
-1, 0, 0, 0, 1, 0, 0, 1,
 1, 1, 1, 1, 1, 1, 1, 1
 };
 
@@ -76,7 +76,7 @@ int main( int argc, char* args[] )
 			SDL_RenderFillRect( gRenderer, &fillBackgroundRect );
 
 			EventController eventController;
-			Dot dot(10, 10, gRenderer, &eventController);
+			Dot dot(100, 100, gRenderer, &eventController);
 
 			//Main loop flag
 			bool quit = false;
@@ -102,7 +102,9 @@ int main( int argc, char* args[] )
 
 				}
 					//Move the dot
-					dot.move();
+					dot.move(map);
+
+					dot.castRay(map);
 
 					//Clear screen
 					SDL_SetRenderDrawColor( gRenderer, 0x7F, 0x7F, 0x7F, 0xFF );
@@ -137,7 +139,7 @@ bool init ()
 	else
 	{
 		//Create window
-		gWindow = SDL_CreateWindow( "First Raycaster Attempt", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN );
+		gWindow = SDL_CreateWindow( "SOAR: a Somewhat Obsessive Attempt to Raycast", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN );
 		if( gWindow == NULL )
 		{
 			printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError() );
