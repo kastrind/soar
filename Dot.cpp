@@ -125,9 +125,15 @@ void Dot::castRay(int* map)
 	float distance;
 	for (currRay = 0; currRay < raysToCast; currRay++)
 	{
-		rayAngle = angle - fovRadians/2 + (float)currRay*(fovRadians/raysToCast);
+		rayAngle = angle - fovRadians/2;
+		if (rayAngle < 0) { rayAngle += soarCfg.M_PI_X_2; }
+		rayAngle += (float)currRay*(fovRadians/raysToCast);
+		//if (rayAngle < 0) { rayAngle = soarCfg.M_PI_X_2 - (float)(raysToCast)*(fovRadians/raysToCast) + (float)(currRay)*(fovRadians/raysToCast);}
 		//std::cout << "angle: " << angle << ", currRay: " << currRay << ", rayAngle: " << rayAngle << std::endl;
+		//if (currRay >20 )continue;//TODO REMOVE!
 		dof=1;
+		rayX = 0;
+		rayY = 0;
 		while (dof <= maxDof)
 		{
 			//std::cout << "dof: " << dof << std::endl;
@@ -142,13 +148,22 @@ void Dot::castRay(int* map)
 				int wallY = (mapIndex/8)*64;
 				int wallX = (mapIndex%8)*64;
 
-				if(map[mapIndex] == 1)
-				{
-					//std::cout << "mapIndex: " << mapIndex << std::endl;
-					//std::cout << "wallY: " << wallY << std::endl;
-					//std::cout << "wallX: " << wallX << std::endl;
-					//std::cout << "rayX: " << rayX << std::endl;
-					//std::cout << "rayY: " << rayY << std::endl;
+				if(map[mapIndex] == 1) {
+					while(map[mapIndex]==1) {
+						rayX = cos(rayAngle) * (--d) * dof;
+						rayY = sin(rayAngle) * d * dof;
+						mapIndex = ((int)(posY + rayY) / 64) * 8 + ((int)(posX + rayX)/64);
+
+						wallY = (mapIndex/8)*64;
+						wallX = (mapIndex%8)*64;
+					}
+					rayX = cos(rayAngle) * (++d) * dof;
+					rayY = sin(rayAngle) * d * dof;
+					mapIndex = ((int)(posY + rayY) / 64) * 8 + ((int)(posX + rayX)/64);
+
+					wallY = (mapIndex/8)*64;
+					wallX = (mapIndex%8)*64;
+
 
 					bool doIntersectSideAB=false, doIntersectSideBC=false, doIntersectSideCD=false, doIntersectSideDA=false;
 					float distanceAB=10000, distanceBC=10000, distanceCD=10000, distanceDA=10000;
@@ -240,32 +255,43 @@ void Dot::castRay(int* map)
 						if (doIntersectSideCD) { distanceCD =  dist(posX, posY, rayXCD, rayYCD); }
 						if (doIntersectSideDA) { distanceDA =  dist(posX, posY, rayXDA, rayYDA); }
 						
-						//std::cout << "DISTANCE CD = " << distanceCD << std::endl;
-						//std::cout << "DISTANCE DA = " << distanceDA << std::endl;
+						// std::cout << "DISTANCE CD = " << distanceCD << std::endl;
+						// std::cout << "DISTANCE DA = " << distanceDA << std::endl;
 
 						if (distanceCD < distanceDA)
 						{
 							rayX = rayXCD - posX;
 							rayY = rayYCD - posY;
 							distance = distanceCD;
-							std::cout << "INTERSECTION AT CD!!" << std::endl;
+							//if (currRay<20) std::cout << "INTERSECTION AT CD with distance " << distance << " for ray " << currRay << std::endl;
 						}
 						else if (distanceDA < distanceCD)
 						{
 							rayX = rayXDA - posX;
 							rayY = rayYDA - posY;
 							distance = distanceDA;
-							std::cout << "INTERSECTION AT DA!!" << std::endl;
+							//if (currRay<20) std::cout << "INTERSECTION AT DA with distance " << distance << " for ray " << currRay << std::endl;
 						}
 					}
 
 					if (doIntersectSideAB || doIntersectSideBC || doIntersectSideCD || doIntersectSideDA) {
-						std::cout << "INTERSECTION HERE !!!! rayX " << rayX << "rayY" << rayY << std::endl;
+						//std::cout << "INTERSECTION HERE !!!! rayX " << rayX << "rayY" << rayY << std::endl;
 						d = maxD;
 						dof = maxDof;
 					}
 
-				}//hit
+					d = maxD;
+					dof = maxDof;
+					float ca = angle - rayAngle;
+					if (ca < 0) { ca += soarCfg.M_PI_X_2; }
+					distance = distance * cos(ca);
+					int lineH = (64* soarCfg.SCREEN_HEIGHT)/distance; if (lineH>soarCfg.SCREEN_HEIGHT) { lineH=soarCfg.SCREEN_HEIGHT; }
+					int lineOff = soarCfg.SCREEN_HEIGHT/2 - (lineH>>1);
+					SDL_Rect fillRect = { soarCfg.GAME_WIDTH + currRay*soarCfg.VERTICAL_DRAW_WIDTH, lineOff, soarCfg.VERTICAL_DRAW_WIDTH, lineH };
+					SDL_SetRenderDrawColor( gRenderer, 0x00, 0xFF, 0x00, 0xFF );
+					SDL_RenderFillRect( gRenderer, &fillRect );
+
+				}
 				d += 8;
 			}
 			dof++;
@@ -279,16 +305,21 @@ void Dot::castRay(int* map)
 			//int lineOff = 160 - (lineH>>1);                                               //line offset
 			//glLineWidth(8);glBegin(GL_LINES);glVertex2i(r*8+530,lineOff);glVertex2i(r*8+530,lineOff+lineH);glEnd();//draw vertical wall 
 
-			float ca = angle - rayAngle;
-			distance = distance * cos(ca);
-			int lineH = (64* soarCfg.SCREEN_HEIGHT)/distance; if (lineH>soarCfg.SCREEN_HEIGHT) { lineH=soarCfg.SCREEN_HEIGHT; }
-			int lineOff = soarCfg.SCREEN_HEIGHT/2 - (lineH>>1);
-			SDL_Rect fillRect = { soarCfg.GAME_WIDTH + currRay*soarCfg.VERTICAL_DRAW_WIDTH, lineOff, soarCfg.VERTICAL_DRAW_WIDTH, lineH };
-			SDL_SetRenderDrawColor( gRenderer, 0x00, 0xFF, 0x00, 0xFF );
-			SDL_RenderFillRect( gRenderer, &fillRect );
+			// float ca = angle - rayAngle;
+			// //if (ca < 0 ) { ca = soarCfg.M_PI_X_2 - ca; }
+			// distance = distance * cos(ca);
+			// if (currRay==0) {std::cout << "firstray " << distance << std::endl;}
+			// if (currRay==soarCfg.RAYS_TO_CAST-1) {std::cout << "lastray " << distance << std::endl;}
+			// int lineH = (64* soarCfg.SCREEN_HEIGHT)/distance; if (lineH>soarCfg.SCREEN_HEIGHT) { lineH=soarCfg.SCREEN_HEIGHT; }
+			// int lineOff = soarCfg.SCREEN_HEIGHT/2 - (lineH>>1);
+			// SDL_Rect fillRect = { soarCfg.GAME_WIDTH + currRay*soarCfg.VERTICAL_DRAW_WIDTH, lineOff, soarCfg.VERTICAL_DRAW_WIDTH, lineH };
+			// SDL_SetRenderDrawColor( gRenderer, 0x00, 0xFF, 0x00, 0xFF );
+			// SDL_RenderFillRect( gRenderer, &fillRect );
 
 			//std::cout << "DRAWING currRay: " << currRay << std::endl;
-			SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0x00, 0xFF );
+			if (rayAngle > soarCfg.M_PI_X_3_HALF) { SDL_SetRenderDrawColor( gRenderer, 0xFF, 0x00, 0x00, 0xFF ); }
+			else { SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0x00, 0xFF ); }
+			
 			SDL_RenderDrawLine( gRenderer, posX + DOT_WIDTH/2, posY + DOT_HEIGHT/2, posX  + DOT_WIDTH/2 + rayX, posY + DOT_HEIGHT/2 + rayY);
 		}
 

@@ -11,7 +11,7 @@ typedef struct SOARConfiguration
 
 	const int SCREEN_HEIGHT = 512;
 
-	const int DOF = 3; //8;//depth of field
+	const int DOF = 8; //depth of field
 
 	const int FOV = 60; //field of view in degrees
 
