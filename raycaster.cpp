@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Configuration.h"
 //Using SDL and standard IO
 #include <SDL.h>
 #include <stdio.h>
@@ -7,15 +8,14 @@
 
 #include "Dot.h"
 
+SOARCFG soarCfg;
+
 //Screen dimension constants
-const int SCREEN_WIDTH = 512;
-const int SCREEN_HEIGHT = 512;
+const int SCREEN_WIDTH = soarCfg.SCREEN_WIDTH;
+const int SCREEN_HEIGHT = soarCfg.SCREEN_HEIGHT;
 
 //The window we'll be rendering to
 SDL_Window* gWindow = NULL;
-
-//The surface contained by the window
-SDL_Surface* gScreenSurface = NULL;
 
 //The window renderer
 SDL_Renderer* gRenderer = NULL;
@@ -63,61 +63,51 @@ int main( int argc, char* args[] )
 	}
 	else
 	{
-		//Load media
-		if (!loadMedia())
-		{
-			printf("Failed to load media!\n");
-		}
-		else
-		{
-			//Fill the background gray
-			SDL_Rect fillBackgroundRect = { 0, 0, SCREEN_WIDTH-1, SCREEN_HEIGHT-1 };
-			SDL_SetRenderDrawColor( gRenderer, 0x7F, 0x7F, 0x7F, 0xFF );
-			SDL_RenderFillRect( gRenderer, &fillBackgroundRect );
+		//Fill the background gray
+		SDL_Rect fillBackgroundRect = { 0, 0, SCREEN_WIDTH-1, SCREEN_HEIGHT-1 };
+		SDL_SetRenderDrawColor( gRenderer, 0x7F, 0x7F, 0x7F, 0xFF );
+		SDL_RenderFillRect( gRenderer, &fillBackgroundRect );
 
-			EventController eventController;
-			Dot dot(100, 100, gRenderer, &eventController);
+		EventController eventController;
+		Dot dot(100, 100, gRenderer, &eventController);
 
-			//Main loop flag
-			bool quit = false;
-			//Event handler
-			SDL_Event e;
-			//Handle events on queue
-			while( quit == false )
+		//Main loop flag
+		bool quit = false;
+		//Event handler
+		SDL_Event e;
+		//Handle events on queue
+		while( quit == false )
+		{
+
+			//User requests quit
+			while( SDL_PollEvent( &e ) )
 			{
-
 				//User requests quit
-				while( SDL_PollEvent( &e ) )
+				if( e.type == SDL_QUIT )
 				{
-					//User requests quit
-					if( e.type == SDL_QUIT )
-					{
-						quit = true;
-					}
-					//User presses or releases a key
-					else if( e.type == SDL_KEYDOWN || e.type == SDL_KEYUP )
-					{
-						eventController.processEvent(&e);
-					}
-
+					quit = true;
 				}
-					//Move the dot
-					dot.move(map);
+				//User presses or releases a key
+				else if( e.type == SDL_KEYDOWN || e.type == SDL_KEYUP )
+				{
+					eventController.processEvent(&e);
+				}
 
-					dot.castRay(map);
-
-					//Clear screen
-					SDL_SetRenderDrawColor( gRenderer, 0x7F, 0x7F, 0x7F, 0xFF );
-					SDL_RenderClear( gRenderer );
-					
-					drawMap2D(gRenderer);
-
-					//Render objects
-					dot.render();
-
-					//Update screen
-					SDL_RenderPresent( gRenderer );
 			}
+
+				//Clear screen
+				SDL_SetRenderDrawColor( gRenderer, 0x7F, 0x7F, 0x7F, 0xFF );
+				SDL_RenderClear( gRenderer );
+				
+				drawMap2D(gRenderer);
+
+				//Move the dot
+				dot.move(map);
+
+				dot.castRay(map);
+
+				//Update screen
+				SDL_RenderPresent( gRenderer );
 		}
 	}
 
@@ -149,16 +139,8 @@ bool init ()
 		{
 			//Create renderer for window
 			gRenderer = SDL_CreateRenderer( gWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC );
-			//Get window surface
-			gScreenSurface = SDL_GetWindowSurface( gWindow );
 		}
 	}
-	return success;
-}
-
-bool loadMedia()
-{
-	bool success = true;
 	return success;
 }
 

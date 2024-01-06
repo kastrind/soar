@@ -8,14 +8,6 @@ void Dot::render()
 	SDL_RenderFillRect( gRenderer, &fillRect );
 	SDL_SetRenderDrawColor( gRenderer, 0xFF, 0x00, 0x00, 0xFF );
 	SDL_RenderDrawLine( gRenderer, posX + DOT_WIDTH/2, posY + DOT_HEIGHT/2, posX  + DOT_WIDTH/2 + pdX*5, posY + DOT_HEIGHT/2 + pdY*5);
-	if (abs(rayX)>0 || (rayY)>0)
-	{
-		for (int currRay = 0; currRay < RAYS_TO_CAST; currRay++)
-		{
-			SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0x00, 0xFF );
-			SDL_RenderDrawLine( gRenderer, posX + DOT_WIDTH/2, posY + DOT_HEIGHT/2, posX  + DOT_WIDTH/2 + rayX, posY + DOT_HEIGHT/2 + rayY);
-		}
-	}
 }
 
 void Dot::move(int* map)
@@ -31,26 +23,26 @@ void Dot::move(int* map)
 		angle -= 0.1;
 		if (angle < 0)
 		{
-			angle += 2 * M_PI;
+			angle += soarCfg.M_PI_X_2;
 		}
 		pdX = cos(angle) * 3;
 		pdY = sin(angle) * 3;
 	}
 	else if (keysPressed[SupportedKeys::D]) {
 		angle += 0.1;
-		if (angle > 2 * M_PI)
+		if (angle > soarCfg.M_PI_X_2)
 		{
-			angle -= 2 * M_PI;
+			angle -= soarCfg.M_PI_X_2;
 		}
 		pdX = cos(angle) * 3;
 		pdY = sin(angle) * 3;
 	}
 
 	if (keysPressed[SupportedKeys::LEFT_ARROW]) {
-		float leftAngle = angle - M_PI/2;
+		float leftAngle = angle - soarCfg.M_PI_HALF;
 		if (leftAngle < 0)
 		{
-			leftAngle += 2 * M_PI;
+			leftAngle += soarCfg.M_PI_X_2;
 		}
 		float pdX = cos(leftAngle) * 3;
 		float pdY = sin(leftAngle) * 3;
@@ -58,10 +50,10 @@ void Dot::move(int* map)
 		velY = pdY;
 	}
 	else if (keysPressed[SupportedKeys::RIGHT_ARROW]) {
-		float rightAngle = angle + M_PI/2;
-		if (rightAngle > 2 * M_PI)
+		float rightAngle = angle + soarCfg.M_PI_HALF;
+		if (rightAngle > soarCfg.M_PI_X_2)
 		{
-			rightAngle -= 2 * M_PI;
+			rightAngle -= soarCfg.M_PI_X_2;
 		}
 		float pdX = cos(rightAngle) * 3;
 		float pdY = sin(rightAngle) * 3;
@@ -124,146 +116,183 @@ bool findIntersection(float x1, float y1, float x2, float y2, float x3, float y3
 
 void Dot::castRay(int* map)
 {
-	std::cout << "angle: " << angle << std::endl;
 	int currRay;
 	int dof=1;
-	int maxDof = 8;
+	int maxDof = soarCfg.DOF;
 	int mapIndex;
-	for (currRay = 0; currRay < RAYS_TO_CAST; currRay++)
+	int raysToCast = soarCfg.RAYS_TO_CAST;
+	float fovRadians = soarCfg.FOV_RADIANS;//(float)SOARConfiguration.FOV * M_PI / 180;
+	float distance;
+	for (currRay = 0; currRay < raysToCast; currRay++)
 	{
-		rayAngle = angle;
+		rayAngle = angle - fovRadians/2 + (float)currRay*(fovRadians/raysToCast);
+		//std::cout << "angle: " << angle << ", currRay: " << currRay << ", rayAngle: " << rayAngle << std::endl;
+		dof=1;
 		while (dof <= maxDof)
 		{
-			std::cout << "dof: " << dof << std::endl;
+			//std::cout << "dof: " << dof << std::endl;
 			int maxD = 64;
 			int d = 8;
 			while(d <= maxD) {
-			std::cout << "d: " << d << std::endl;
-			rayX = cos(rayAngle) * d * dof;
-			rayY = sin(rayAngle) * d * dof;
-			mapIndex = ((int)(posY + rayY) / 64) * 8 + ((int)(posX + rayX)/64);
+				//std::cout << "d: " << d << std::endl;
+				rayX = cos(rayAngle) * d * dof;
+				rayY = sin(rayAngle) * d * dof;
+				mapIndex = ((int)(posY + rayY) / 64) * 8 + ((int)(posX + rayX)/64);
 
-			int wallY = (mapIndex/8)*64;
-			int wallX = (mapIndex%8)*64;
+				int wallY = (mapIndex/8)*64;
+				int wallX = (mapIndex%8)*64;
 
-			if(map[mapIndex] == 1)
-			{
-				std::cout << "mapIndex: " << mapIndex << std::endl;
-				std::cout << "wallY: " << wallY << std::endl;
-				std::cout << "wallX: " << wallX << std::endl;
-				std::cout << "rayX: " << rayX << std::endl;
-				std::cout << "rayY: " << rayY << std::endl;
-
-				bool doIntersectSideAB=false, doIntersectSideBC=false, doIntersectSideCD=false, doIntersectSideDA=false;
-				float distanceAB=10000, distanceBC=10000, distanceCD=10000, distanceDA=10000;
-				float rayXAB, rayYAB, rayXBC, rayYBC, rayXCD, rayYCD, rayXDA, rayYDA;
-
-				if (rayAngle >= 0 && rayAngle < M_PI/2)
+				if(map[mapIndex] == 1)
 				{
-					doIntersectSideAB = findIntersection(wallX, wallY, wallX+64, wallY, posX, posY, rayX+posX, rayY+posY, rayXAB, rayYAB);
-					doIntersectSideDA = findIntersection(wallX, wallY, wallX, wallY+64, posX, posY, rayX+posX, rayY+posY, rayXDA, rayYDA);
+					//std::cout << "mapIndex: " << mapIndex << std::endl;
+					//std::cout << "wallY: " << wallY << std::endl;
+					//std::cout << "wallX: " << wallX << std::endl;
+					//std::cout << "rayX: " << rayX << std::endl;
+					//std::cout << "rayY: " << rayY << std::endl;
 
-					if (doIntersectSideAB) { distanceAB =  dist(posX, posY, rayXAB, rayYAB); }
-					if (doIntersectSideDA) { distanceDA =  dist(posX, posY, rayXDA, rayYDA); }
-					
-					std::cout << "DISTANCE AB = " << distanceAB << std::endl;
-					std::cout << "DISTANCE DA = " << distanceDA << std::endl;
+					bool doIntersectSideAB=false, doIntersectSideBC=false, doIntersectSideCD=false, doIntersectSideDA=false;
+					float distanceAB=10000, distanceBC=10000, distanceCD=10000, distanceDA=10000;
+					float rayXAB, rayYAB, rayXBC, rayYBC, rayXCD, rayYCD, rayXDA, rayYDA;
 
-					if (distanceAB < distanceDA)
+					if (rayAngle >= 0 && rayAngle < soarCfg.M_PI_HALF)
 					{
-						rayX = rayXAB - posX;
-						rayY = rayYAB - posY;
-						std::cout << "INTERSECTION AT AB!!" << std::endl;
-					}
-					else if (distanceDA < distanceAB)
-					{
-						rayX = rayXDA - posX;
-						rayY = rayYDA - posY;
-						std::cout << "INTERSECTION AT DA!!" << std::endl;
-					}
-				}
-				else if (rayAngle < M_PI)
-				{
-					doIntersectSideAB = findIntersection(wallX, wallY, wallX+64, wallY, posX, posY, rayX+posX, rayY+posY, rayXAB, rayYAB);
-					doIntersectSideBC = findIntersection(wallX+64, wallY, wallX+64, wallY+64, posX, posY, rayX+posX, rayY+posY, rayXBC, rayYBC);
+						doIntersectSideAB = findIntersection(wallX, wallY, wallX+64, wallY, posX, posY, rayX+posX, rayY+posY, rayXAB, rayYAB);
+						doIntersectSideDA = findIntersection(wallX, wallY, wallX, wallY+64, posX, posY, rayX+posX, rayY+posY, rayXDA, rayYDA);
 
-					if (doIntersectSideAB) { distanceAB =  dist(posX, posY, rayXAB, rayYAB); }
-					if (doIntersectSideBC) { distanceBC =  dist(posX, posY, rayXBC, rayYBC); }
-					
-					std::cout << "DISTANCE AB = " << distanceAB << std::endl;
-					std::cout << "DISTANCE BC = " << distanceBC << std::endl;
+						if (doIntersectSideAB) { distanceAB =  dist(posX, posY, rayXAB, rayYAB); }
+						if (doIntersectSideDA) { distanceDA =  dist(posX, posY, rayXDA, rayYDA); }
+						
+						//std::cout << "DISTANCE AB = " << distanceAB << std::endl;
+						//std::cout << "DISTANCE DA = " << distanceDA << std::endl;
 
-					if (distanceAB < distanceBC)
-					{
-						rayX = rayXAB - posX;
-						rayY = rayYAB - posY;
-						std::cout << "INTERSECTION AT AB!!" << std::endl;
+						if (distanceAB < distanceDA)
+						{
+							rayX = rayXAB - posX;
+							rayY = rayYAB - posY;
+							distance = distanceAB;
+							//std::cout << "INTERSECTION AT AB!!" << std::endl;
+						}
+						else if (distanceDA < distanceAB)
+						{
+							rayX = rayXDA - posX;
+							rayY = rayYDA - posY;
+							distance = distanceDA;
+							//std::cout << "INTERSECTION AT DA!!" << std::endl;
+						}
 					}
-					else if (distanceBC < distanceAB)
+					else if (rayAngle < M_PI)
 					{
-						rayX = rayXBC - posX;
-						rayY = rayYBC - posY;
-						std::cout << "INTERSECTION AT BC!!" << std::endl;
-					}
-				}
-				else if (rayAngle < 3*M_PI/2)
-				{
-					doIntersectSideBC = findIntersection(wallX+64, wallY, wallX+64, wallY+64, posX, posY, rayX+posX, rayY+posY, rayXBC, rayYBC);
-					doIntersectSideCD = findIntersection(wallX, wallY+64, wallX+64, wallY+64, posX, posY, rayX+posX, rayY+posY, rayXCD, rayYCD);
+						doIntersectSideAB = findIntersection(wallX, wallY, wallX+64, wallY, posX, posY, rayX+posX, rayY+posY, rayXAB, rayYAB);
+						doIntersectSideBC = findIntersection(wallX+64, wallY, wallX+64, wallY+64, posX, posY, rayX+posX, rayY+posY, rayXBC, rayYBC);
 
-					if (doIntersectSideBC) { distanceBC =  dist(posX, posY, rayXBC, rayYBC); }
-					if (doIntersectSideCD) { distanceCD =  dist(posX, posY, rayXCD, rayYCD); }
-					
-					std::cout << "DISTANCE BC = " << distanceBC << std::endl;
-					std::cout << "DISTANCE CD = " << distanceCD << std::endl;
+						if (doIntersectSideAB) { distanceAB =  dist(posX, posY, rayXAB, rayYAB); }
+						if (doIntersectSideBC) { distanceBC =  dist(posX, posY, rayXBC, rayYBC); }
+						
+						//std::cout << "DISTANCE AB = " << distanceAB << std::endl;
+						//std::cout << "DISTANCE BC = " << distanceBC << std::endl;
 
-					if (distanceBC < distanceCD)
-					{
-						rayX = rayXBC - posX;
-						rayY = rayYBC - posY;
-						std::cout << "INTERSECTION AT BC!!" << std::endl;
+						if (distanceAB < distanceBC)
+						{
+							rayX = rayXAB - posX;
+							rayY = rayYAB - posY;
+							distance = distanceAB;
+							//std::cout << "INTERSECTION AT AB!!" << std::endl;
+						}
+						else if (distanceBC < distanceAB)
+						{
+							rayX = rayXBC - posX;
+							rayY = rayYBC - posY;
+							distance = distanceBC;
+							//std::cout << "INTERSECTION AT BC!!" << std::endl;
+						}
 					}
-					else if (distanceCD < distanceBC)
+					else if (rayAngle < soarCfg.M_PI_X_3_HALF)
 					{
-						rayX = rayXCD - posX;
-						rayY = rayYCD - posY;
-						std::cout << "INTERSECTION AT CD!!" << std::endl;
-					}
-				}
-				else // rayAngle < 2*M_PI
-				{
-					doIntersectSideCD = findIntersection(wallX, wallY+64, wallX+64, wallY+64, posX, posY, rayX+posX, rayY+posY, rayXCD, rayYCD);
-					doIntersectSideDA = findIntersection(wallX, wallY, wallX, wallY+64, posX, posY, rayX+posX, rayY+posY, rayXDA, rayYDA);
+						doIntersectSideBC = findIntersection(wallX+64, wallY, wallX+64, wallY+64, posX, posY, rayX+posX, rayY+posY, rayXBC, rayYBC);
+						doIntersectSideCD = findIntersection(wallX, wallY+64, wallX+64, wallY+64, posX, posY, rayX+posX, rayY+posY, rayXCD, rayYCD);
 
-					if (doIntersectSideCD) { distanceCD =  dist(posX, posY, rayXCD, rayYCD); }
-					if (doIntersectSideDA) { distanceDA =  dist(posX, posY, rayXDA, rayYDA); }
-					
-					std::cout << "DISTANCE CD = " << distanceCD << std::endl;
-					std::cout << "DISTANCE DA = " << distanceDA << std::endl;
+						if (doIntersectSideBC) { distanceBC =  dist(posX, posY, rayXBC, rayYBC); }
+						if (doIntersectSideCD) { distanceCD =  dist(posX, posY, rayXCD, rayYCD); }
+						
+						//std::cout << "DISTANCE BC = " << distanceBC << std::endl;
+						//std::cout << "DISTANCE CD = " << distanceCD << std::endl;
 
-					if (distanceCD < distanceDA)
-					{
-						rayX = rayXCD - posX;
-						rayY = rayYCD - posY;
-						std::cout << "INTERSECTION AT CD!!" << std::endl;
+						if (distanceBC < distanceCD)
+						{
+							rayX = rayXBC - posX;
+							rayY = rayYBC - posY;
+							distance = distanceBC;
+							//std::cout << "INTERSECTION AT BC!!" << std::endl;
+						}
+						else if (distanceCD < distanceBC)
+						{
+							rayX = rayXCD - posX;
+							rayY = rayYCD - posY;
+							distance = distanceCD;
+							//std::cout << "INTERSECTION AT CD!!" << std::endl;
+						}
 					}
-					else if (distanceDA < distanceCD)
+					else // rayAngle < 2*M_PI (or soarCfg.M_PI_X_2)
 					{
-						rayX = rayXDA - posX;
-						rayY = rayYDA - posY;
-						std::cout << "INTERSECTION AT DA!!" << std::endl;
-					}
-				}
+						doIntersectSideCD = findIntersection(wallX, wallY+64, wallX+64, wallY+64, posX, posY, rayX+posX, rayY+posY, rayXCD, rayYCD);
+						doIntersectSideDA = findIntersection(wallX, wallY, wallX, wallY+64, posX, posY, rayX+posX, rayY+posY, rayXDA, rayYDA);
 
-				if (doIntersectSideAB || doIntersectSideBC || doIntersectSideCD || doIntersectSideDA) {
-					std::cout << "INTERSECTION HERE !!!! rayX " << rayX << "rayY" << rayY << std::endl;
-					d = maxD;
-					dof = maxDof;
-				}
-			}//hit
-			d += 8;
+						if (doIntersectSideCD) { distanceCD =  dist(posX, posY, rayXCD, rayYCD); }
+						if (doIntersectSideDA) { distanceDA =  dist(posX, posY, rayXDA, rayYDA); }
+						
+						//std::cout << "DISTANCE CD = " << distanceCD << std::endl;
+						//std::cout << "DISTANCE DA = " << distanceDA << std::endl;
+
+						if (distanceCD < distanceDA)
+						{
+							rayX = rayXCD - posX;
+							rayY = rayYCD - posY;
+							distance = distanceCD;
+							std::cout << "INTERSECTION AT CD!!" << std::endl;
+						}
+						else if (distanceDA < distanceCD)
+						{
+							rayX = rayXDA - posX;
+							rayY = rayYDA - posY;
+							distance = distanceDA;
+							std::cout << "INTERSECTION AT DA!!" << std::endl;
+						}
+					}
+
+					if (doIntersectSideAB || doIntersectSideBC || doIntersectSideCD || doIntersectSideDA) {
+						std::cout << "INTERSECTION HERE !!!! rayX " << rayX << "rayY" << rayY << std::endl;
+						d = maxD;
+						dof = maxDof;
+					}
+
+				}//hit
+				d += 8;
 			}
 			dof++;
 		}
+
+		// if there is a ray cast, render it
+		if (abs(rayX)>0 || (rayY)>0)
+		{
+			//int ca=FixAng(pa-ra); disH=disH*cos(degToRad(ca));                            //fix fisheye 
+			//int lineH = (mapS*320)/(disH); if(lineH>320){ lineH=320;}                     //line height and limit
+			//int lineOff = 160 - (lineH>>1);                                               //line offset
+			//glLineWidth(8);glBegin(GL_LINES);glVertex2i(r*8+530,lineOff);glVertex2i(r*8+530,lineOff+lineH);glEnd();//draw vertical wall 
+
+			float ca = angle - rayAngle;
+			distance = distance * cos(ca);
+			int lineH = (64* soarCfg.SCREEN_HEIGHT)/distance; if (lineH>soarCfg.SCREEN_HEIGHT) { lineH=soarCfg.SCREEN_HEIGHT; }
+			int lineOff = soarCfg.SCREEN_HEIGHT/2 - (lineH>>1);
+			SDL_Rect fillRect = { soarCfg.GAME_WIDTH + currRay*soarCfg.VERTICAL_DRAW_WIDTH, lineOff, soarCfg.VERTICAL_DRAW_WIDTH, lineH };
+			SDL_SetRenderDrawColor( gRenderer, 0x00, 0xFF, 0x00, 0xFF );
+			SDL_RenderFillRect( gRenderer, &fillRect );
+
+			//std::cout << "DRAWING currRay: " << currRay << std::endl;
+			SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0x00, 0xFF );
+			SDL_RenderDrawLine( gRenderer, posX + DOT_WIDTH/2, posY + DOT_HEIGHT/2, posX  + DOT_WIDTH/2 + rayX, posY + DOT_HEIGHT/2 + rayY);
+		}
+
 	}
+	//Render the dot
+	render();
 }

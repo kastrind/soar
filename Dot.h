@@ -4,6 +4,7 @@
 #include <SDL.h>
 #include <iostream>
 #include <cmath>
+#include "Configuration.h"
 #include "EventController.h"
 
 //The dot that will move around on the screen
@@ -14,8 +15,6 @@ class Dot
 		//The dimensions of the dot
 		static const int DOT_WIDTH = 10;
 		static const int DOT_HEIGHT = 10;
-
-		static const int RAYS_TO_CAST = 1;
 
 		//Initializes the variables
 		Dot () : posX(0), posY(0), velX(0), velY(0), pdX(3), pdY(0), angle(0), rayAngle(0), rayX(0), rayY(0), gRenderer(nullptr), eController(nullptr)
