@@ -128,6 +128,7 @@ void Dot::castRay(int* map)
 		rayAngle = angle - fovRadians/2;
 		if (rayAngle < 0) { rayAngle += soarCfg.M_PI_X_2; }
 		rayAngle += (float)currRay*(fovRadians/raysToCast);
+		if (rayAngle >= soarCfg.M_PI_X_2) { rayAngle -= soarCfg.M_PI_X_2; }
 		//if (rayAngle < 0) { rayAngle = soarCfg.M_PI_X_2 - (float)(raysToCast)*(fovRadians/raysToCast) + (float)(currRay)*(fovRadians/raysToCast);}
 		//std::cout << "angle: " << angle << ", currRay: " << currRay << ", rayAngle: " << rayAngle << std::endl;
 		//if (currRay >20 )continue;//TODO REMOVE!
@@ -192,7 +193,7 @@ void Dot::castRay(int* map)
 							rayX = rayXDA - posX;
 							rayY = rayYDA - posY;
 							distance = distanceDA;
-							//std::cout << "INTERSECTION AT DA!!" << std::endl;
+							//std::cout << "INTERSECTION AT DA!!" << distance <<  std::endl;
 						}
 					}
 					else if (rayAngle < M_PI)
@@ -211,14 +212,14 @@ void Dot::castRay(int* map)
 							rayX = rayXAB - posX;
 							rayY = rayYAB - posY;
 							distance = distanceAB;
-							//std::cout << "INTERSECTION AT AB!!" << std::endl;
+							//std::cout << "INTERSECTION AT AB!!" << distance <<  std::endl;
 						}
 						else if (distanceBC < distanceAB)
 						{
 							rayX = rayXBC - posX;
 							rayY = rayYBC - posY;
 							distance = distanceBC;
-							//std::cout << "INTERSECTION AT BC!!" << std::endl;
+							//std::cout << "INTERSECTION AT BC!!" << distance <<  std::endl;
 						}
 					}
 					else if (rayAngle < soarCfg.M_PI_X_3_HALF)
@@ -244,7 +245,7 @@ void Dot::castRay(int* map)
 							rayX = rayXCD - posX;
 							rayY = rayYCD - posY;
 							distance = distanceCD;
-							//std::cout << "INTERSECTION AT CD!!" << std::endl;
+							//std::cout << "INTERSECTION AT CD!!" << distance <<  std::endl;
 						}
 					}
 					else // rayAngle < 2*M_PI (or soarCfg.M_PI_X_2)
@@ -263,14 +264,14 @@ void Dot::castRay(int* map)
 							rayX = rayXCD - posX;
 							rayY = rayYCD - posY;
 							distance = distanceCD;
-							//if (currRay<20) std::cout << "INTERSECTION AT CD with distance " << distance << " for ray " << currRay << std::endl;
+							//std::cout << "INTERSECTION AT CD!!" << distance << std::endl;
 						}
 						else if (distanceDA < distanceCD)
 						{
 							rayX = rayXDA - posX;
 							rayY = rayYDA - posY;
 							distance = distanceDA;
-							//if (currRay<20) std::cout << "INTERSECTION AT DA with distance " << distance << " for ray " << currRay << std::endl;
+							//std::cout << "INTERSECTION AT DA!!" << distance << std::endl;
 						}
 					}
 
@@ -280,48 +281,32 @@ void Dot::castRay(int* map)
 						dof = maxDof;
 					}
 
-					d = maxD;
-					dof = maxDof;
 					float ca = angle - rayAngle;
 					if (ca < 0) { ca += soarCfg.M_PI_X_2; }
-					distance = distance * cos(ca);
-					int lineH = (64* soarCfg.SCREEN_HEIGHT)/distance; if (lineH>soarCfg.SCREEN_HEIGHT) { lineH=soarCfg.SCREEN_HEIGHT; }
-					int lineOff = soarCfg.SCREEN_HEIGHT/2 - (lineH>>1);
-					SDL_Rect fillRect = { soarCfg.GAME_WIDTH + currRay*soarCfg.VERTICAL_DRAW_WIDTH, lineOff, soarCfg.VERTICAL_DRAW_WIDTH, lineH };
-					SDL_SetRenderDrawColor( gRenderer, 0x00, 0xFF, 0x00, 0xFF );
-					SDL_RenderFillRect( gRenderer, &fillRect );
+					if (ca >= soarCfg.M_PI_X_2) { ca -= soarCfg.M_PI_X_2; }
+					if (distance == 0.0f) { distance = 0.01f; }
+					distance = distance * cos(ca); //fix fish-eye effect
+					int lineH = ((float)soarCfg.SCREEN_HEIGHT/soarCfg.GAME_WIDTH)*(64*soarCfg.SCREEN_HEIGHT)/distance; if (lineH>soarCfg.SCREEN_HEIGHT) { lineH=soarCfg.SCREEN_HEIGHT; } //line height
+					int lineOff = soarCfg.SCREEN_HEIGHT/2 - (lineH>>1); //line offset
+
+					int itersV = (int)round(lineH/8); //vertical iterations to draw the fps perspective
+					for (int i=0; i<itersV; i++)
+					{
+						SDL_Rect fillRect = { soarCfg.SCREEN_WIDTH - soarCfg.GAME_WIDTH + currRay*soarCfg.VERTICAL_DRAW_WIDTH, lineOff + (i)*8, soarCfg.VERTICAL_DRAW_WIDTH, 8 };
+						float luminance = std::max( 0.3f, (1.0f - (float)abs(soarCfg.SCREEN_HEIGHT/16 - i)/(1.5f*soarCfg.SCREEN_HEIGHT/16))*(1.0f - distance/(1.5f*soarCfg.DOF*64))*(1.0f - (float)abs(raysToCast/2 - currRay)/(1.5f*raysToCast/2)) );
+						SDL_SetRenderDrawColor( gRenderer, luminance*64, luminance*255, luminance*64, luminance*255 );
+						SDL_RenderFillRect( gRenderer, &fillRect );
+					}
 
 				}
 				d += 8;
 			}
 			dof++;
 		}
+		//draw ray
+		SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0x00, 0xFF );
+		SDL_RenderDrawLine( gRenderer, posX + DOT_WIDTH/2, posY + DOT_HEIGHT/2, posX  + DOT_WIDTH/2 + rayX, posY + DOT_HEIGHT/2 + rayY);
 
-		// if there is a ray cast, render it
-		if (abs(rayX)>0 || (rayY)>0)
-		{
-			//int ca=FixAng(pa-ra); disH=disH*cos(degToRad(ca));                            //fix fisheye 
-			//int lineH = (mapS*320)/(disH); if(lineH>320){ lineH=320;}                     //line height and limit
-			//int lineOff = 160 - (lineH>>1);                                               //line offset
-			//glLineWidth(8);glBegin(GL_LINES);glVertex2i(r*8+530,lineOff);glVertex2i(r*8+530,lineOff+lineH);glEnd();//draw vertical wall 
-
-			// float ca = angle - rayAngle;
-			// //if (ca < 0 ) { ca = soarCfg.M_PI_X_2 - ca; }
-			// distance = distance * cos(ca);
-			// if (currRay==0) {std::cout << "firstray " << distance << std::endl;}
-			// if (currRay==soarCfg.RAYS_TO_CAST-1) {std::cout << "lastray " << distance << std::endl;}
-			// int lineH = (64* soarCfg.SCREEN_HEIGHT)/distance; if (lineH>soarCfg.SCREEN_HEIGHT) { lineH=soarCfg.SCREEN_HEIGHT; }
-			// int lineOff = soarCfg.SCREEN_HEIGHT/2 - (lineH>>1);
-			// SDL_Rect fillRect = { soarCfg.GAME_WIDTH + currRay*soarCfg.VERTICAL_DRAW_WIDTH, lineOff, soarCfg.VERTICAL_DRAW_WIDTH, lineH };
-			// SDL_SetRenderDrawColor( gRenderer, 0x00, 0xFF, 0x00, 0xFF );
-			// SDL_RenderFillRect( gRenderer, &fillRect );
-
-			//std::cout << "DRAWING currRay: " << currRay << std::endl;
-			if (rayAngle > soarCfg.M_PI_X_3_HALF) { SDL_SetRenderDrawColor( gRenderer, 0xFF, 0x00, 0x00, 0xFF ); }
-			else { SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0x00, 0xFF ); }
-			
-			SDL_RenderDrawLine( gRenderer, posX + DOT_WIDTH/2, posY + DOT_HEIGHT/2, posX  + DOT_WIDTH/2 + rayX, posY + DOT_HEIGHT/2 + rayY);
-		}
 
 	}
 	//Render the dot
