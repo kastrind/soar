@@ -123,9 +123,20 @@ void Dot::castRay(int* map)
 	int raysToCast = soarCfg.RAYS_TO_CAST;
 	float fovRadians = soarCfg.FOV_RADIANS;//(float)SOARConfiguration.FOV * M_PI / 180;
 	float distance;
+	Orientation hitSide;
 
 	int textureYLength=8;
-	int texture[] = {1,0,1,0,1,0,1,0};
+	int textureXLength=8;
+	int texture[] = {
+	1,1,1,1,0,0,0,0,
+	1,1,1,1,0,0,0,0,
+	1,1,1,1,0,0,0,0,
+	1,1,1,1,0,0,0,0,
+	0,0,0,0,1,1,1,1,
+	0,0,0,0,1,1,1,1,
+	0,0,0,0,1,1,1,1,
+	0,0,0,0,1,1,1,1
+	};
 
 	for (currRay = 0; currRay < raysToCast; currRay++)
 	{
@@ -190,6 +201,7 @@ void Dot::castRay(int* map)
 							rayX = rayXAB - posX;
 							rayY = rayYAB - posY;
 							distance = distanceAB;
+							hitSide = Orientation::NORTH;
 							//std::cout << "INTERSECTION AT AB!!" << std::endl;
 						}
 						else if (distanceDA < distanceAB)
@@ -197,6 +209,7 @@ void Dot::castRay(int* map)
 							rayX = rayXDA - posX;
 							rayY = rayYDA - posY;
 							distance = distanceDA;
+							hitSide = Orientation::WEST;
 							//std::cout << "INTERSECTION AT DA!!" << distance <<  std::endl;
 						}
 					}
@@ -216,6 +229,7 @@ void Dot::castRay(int* map)
 							rayX = rayXAB - posX;
 							rayY = rayYAB - posY;
 							distance = distanceAB;
+							hitSide = Orientation::NORTH;
 							//std::cout << "INTERSECTION AT AB!!" << distance <<  std::endl;
 						}
 						else if (distanceBC < distanceAB)
@@ -223,6 +237,7 @@ void Dot::castRay(int* map)
 							rayX = rayXBC - posX;
 							rayY = rayYBC - posY;
 							distance = distanceBC;
+							hitSide = Orientation::EAST;
 							//std::cout << "INTERSECTION AT BC!!" << distance <<  std::endl;
 						}
 					}
@@ -242,14 +257,16 @@ void Dot::castRay(int* map)
 							rayX = rayXBC - posX;
 							rayY = rayYBC - posY;
 							distance = distanceBC;
-							std::cout << "INTERSECTION AT BC!!" << distance <<  std::endl;
+							hitSide = Orientation::EAST;
+							//std::cout << "INTERSECTION AT BC!!" << distance <<  std::endl;
 						}
 						else if (distanceCD < distanceBC)
 						{
 							rayX = rayXCD - posX;
 							rayY = rayYCD - posY;
 							distance = distanceCD;
-							std::cout << "INTERSECTION AT CD!!" << distance <<  std::endl;
+							hitSide = Orientation::SOUTH;
+							//std::cout << "INTERSECTION AT CD!!" << distance <<  std::endl;
 						}
 					}
 					else // rayAngle < 2*M_PI (or soarCfg.M_PI_X_2)
@@ -268,14 +285,16 @@ void Dot::castRay(int* map)
 							rayX = rayXCD - posX;
 							rayY = rayYCD - posY;
 							distance = distanceCD;
-							std::cout << "INTERSECTION AT CD!!" << distance << std::endl;
+							hitSide = Orientation::SOUTH;
+							//std::cout << "INTERSECTION AT CD!!" << distance << std::endl;
 						}
 						else if (distanceDA < distanceCD)
 						{
 							rayX = rayXDA - posX;
 							rayY = rayYDA - posY;
 							distance = distanceDA;
-							std::cout << "INTERSECTION AT DA!!" << distance << std::endl;
+							hitSide = Orientation::WEST;
+							//std::cout << "INTERSECTION AT DA!!" << distance << std::endl;
 						}
 					}
 
@@ -299,23 +318,36 @@ void Dot::castRay(int* map)
 					if (lineH>soarCfg.SCREEN_HEIGHT) { textureOff = (lineH/8 - soarCfg.SCREEN_HEIGHT/8)/2.0f; lineH=soarCfg.SCREEN_HEIGHT; }
 					int lineOff = soarCfg.SCREEN_HEIGHT/2 - (lineH>>1); //line offset
 
-					int itersV = (int)round(lineH/8); //vertical iterations to draw the fps perspective
-					float textureY = textureStep * textureOff;
+					int itersV = (int)round(lineH/soarCfg.VERTICAL_DRAW_WIDTH); //vertical iterations to draw the fps perspective
+
+					float textureU;
+					if (hitSide == Orientation::NORTH || hitSide == Orientation::SOUTH)//if looking N or S sides, take X-coordinate
+					{
+						textureU = (int)((posX + rayX)/(64/textureYLength)) % textureYLength;
+						if (rayAngle < M_PI) { textureU = textureXLength -1 - textureU; } //flip texture coordinate
+					}
+					else //if looking W or E sides, take Y-coordinate
+					{
+						textureU = (int)((posY + rayY)/(64/textureYLength)) % textureYLength;
+						if (rayAngle > soarCfg.M_PI_HALF && rayAngle < soarCfg.M_PI_X_3_HALF) { textureU = textureXLength -1 - textureU; } //flip texture coordinate
+					}
+
+					float textureV = textureStep * textureOff;
 					int ti = 0;
 					int textureColor;
+					
 					for (int i=0; i<itersV; i++)
 					{
+						ti = (int)textureV * textureXLength + textureU;
+						//std::cout << "textureV: " << textureV << ", ti: " << ti << std::endl;
+						//std::cout << "textureU: " << textureU << ", ti: " << ti << std::endl;
 						textureColor = texture[ti]*255;
 						SDL_Rect fillRect = { soarCfg.SCREEN_WIDTH - soarCfg.GAME_WIDTH + currRay*soarCfg.VERTICAL_DRAW_WIDTH, lineOff + (i-1)*8, soarCfg.VERTICAL_DRAW_WIDTH, 8 };
 						float luminance = std::max( 0.3f, (1.0f - (float)abs(soarCfg.SCREEN_HEIGHT/16 - i)/(1.5f*soarCfg.SCREEN_HEIGHT/16))*(1.0f - distance/(1.5f*soarCfg.DOF*64))*(1.0f - (float)abs(raysToCast/2 - currRay)/(1.5f*raysToCast/2)) );
 						SDL_SetRenderDrawColor( gRenderer, luminance*textureColor, luminance*textureColor, luminance*textureColor, 255 );
 						SDL_RenderFillRect( gRenderer, &fillRect );
 						//std::cout << "luminance: " << luminance << ", textureColor: " << textureColor << std::endl;
-						//if (i%textureStep == 0) { textureIndex++; }
-						textureY += textureStep;
-						ti = (int)textureY;
-						if (ti >= textureYLength) { ti=0; textureY = 0; }
-
+						textureV += textureStep;
 					}
 
 				}

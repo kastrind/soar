@@ -7,6 +7,13 @@
 #include "Configuration.h"
 #include "EventController.h"
 
+typedef enum {
+	NORTH,
+	EAST,
+	SOUTH,
+	WEST
+} Orientation;
+
 //The dot that will move around on the screen
 class Dot
 {
