@@ -238,14 +238,14 @@ void Dot::castRay(int* map)
 							rayX = rayXBC - posX;
 							rayY = rayYBC - posY;
 							distance = distanceBC;
-							//std::cout << "INTERSECTION AT BC!!" << std::endl;
+							std::cout << "INTERSECTION AT BC!!" << distance <<  std::endl;
 						}
 						else if (distanceCD < distanceBC)
 						{
 							rayX = rayXCD - posX;
 							rayY = rayYCD - posY;
 							distance = distanceCD;
-							//std::cout << "INTERSECTION AT CD!!" << distance <<  std::endl;
+							std::cout << "INTERSECTION AT CD!!" << distance <<  std::endl;
 						}
 					}
 					else // rayAngle < 2*M_PI (or soarCfg.M_PI_X_2)
@@ -264,14 +264,14 @@ void Dot::castRay(int* map)
 							rayX = rayXCD - posX;
 							rayY = rayYCD - posY;
 							distance = distanceCD;
-							//std::cout << "INTERSECTION AT CD!!" << distance << std::endl;
+							std::cout << "INTERSECTION AT CD!!" << distance << std::endl;
 						}
 						else if (distanceDA < distanceCD)
 						{
 							rayX = rayXDA - posX;
 							rayY = rayYDA - posY;
 							distance = distanceDA;
-							//std::cout << "INTERSECTION AT DA!!" << distance << std::endl;
+							std::cout << "INTERSECTION AT DA!!" << distance << std::endl;
 						}
 					}
 
@@ -286,15 +286,15 @@ void Dot::castRay(int* map)
 					if (ca >= soarCfg.M_PI_X_2) { ca -= soarCfg.M_PI_X_2; }
 					if (distance == 0.0f) { distance = 0.01f; }
 					distance = distance * cos(ca); //fix fish-eye effect
-					int lineH = ((float)soarCfg.SCREEN_HEIGHT/soarCfg.GAME_WIDTH)*(64*soarCfg.SCREEN_HEIGHT)/distance; if (lineH>soarCfg.SCREEN_HEIGHT) { lineH=soarCfg.SCREEN_HEIGHT; } //line height
+					int lineH = (64*soarCfg.SCREEN_HEIGHT)/distance; if (lineH>soarCfg.SCREEN_HEIGHT) { lineH=soarCfg.SCREEN_HEIGHT; } //line height
 					int lineOff = soarCfg.SCREEN_HEIGHT/2 - (lineH>>1); //line offset
 
 					int itersV = (int)round(lineH/8); //vertical iterations to draw the fps perspective
 					for (int i=0; i<itersV; i++)
 					{
-						SDL_Rect fillRect = { soarCfg.SCREEN_WIDTH - soarCfg.GAME_WIDTH + currRay*soarCfg.VERTICAL_DRAW_WIDTH, lineOff + (i)*8, soarCfg.VERTICAL_DRAW_WIDTH, 8 };
+						SDL_Rect fillRect = { soarCfg.SCREEN_WIDTH - soarCfg.GAME_WIDTH + currRay*soarCfg.VERTICAL_DRAW_WIDTH, lineOff + (i-1)*8, soarCfg.VERTICAL_DRAW_WIDTH, 8 };
 						float luminance = std::max( 0.3f, (1.0f - (float)abs(soarCfg.SCREEN_HEIGHT/16 - i)/(1.5f*soarCfg.SCREEN_HEIGHT/16))*(1.0f - distance/(1.5f*soarCfg.DOF*64))*(1.0f - (float)abs(raysToCast/2 - currRay)/(1.5f*raysToCast/2)) );
-						SDL_SetRenderDrawColor( gRenderer, luminance*64, luminance*255, luminance*64, luminance*255 );
+						SDL_SetRenderDrawColor( gRenderer, luminance*64, luminance*255, luminance*64, 255 );
 						SDL_RenderFillRect( gRenderer, &fillRect );
 					}
 
